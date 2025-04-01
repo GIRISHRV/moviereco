@@ -1,0 +1,14 @@
+aiohttp
+fastapi
+httpx
+python_jose
+pydantic
+pydantic_settings
+python-dotenv
+bcrypt
+Requests
+SQLAlchemy
+uvicorn
+numpy
+pydantic[email]
+python-multipart
