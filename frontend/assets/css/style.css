@@ -1508,3 +1508,90 @@ body.home .top-navbar .container-fluid {
     opacity: 1;
 }
 
+/* Profile Page Styles */
+.profile-header-banner {
+    background: linear-gradient(45deg, #1a1a1a, #2c3e50);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.animated-avatar {
+    transition: transform 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.animated-avatar:hover {
+    transform: scale(1.05);
+}
+
+.achievement-badges .badge {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    transition: transform 0.2s ease;
+}
+
+.achievement-badges .badge:hover {
+    transform: translateY(-2px);
+}
+
+.stat-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.stat-icon {
+    transition: transform 0.3s ease;
+}
+
+.stat-card:hover .stat-icon {
+    transform: scale(1.1);
+}
+
+.counter {
+    font-size: 2.5rem;
+    font-weight: 600;
+}
+
+#watch-history .card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+#watch-history .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.btn-group .btn {
+    transition: all 0.2s ease;
+}
+
+.btn-group .btn:hover {
+    transform: translateY(-2px);
+}
+
+/* List View Styles */
+.watch-history-list .movie-item {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    background: rgba(0,0,0,0.2);
+    transition: transform 0.2s ease;
+}
+
+.watch-history-list .movie-item:hover {
+    transform: translateX(5px);
+}
+
+.watch-history-list .movie-poster {
+    width: 100px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-right: 1rem;
+}
+

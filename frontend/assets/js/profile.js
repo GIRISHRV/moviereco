@@ -219,12 +219,30 @@ class ProfilePage {
     createHistoryCard(movie) {
         return `
             <div class="col-6 col-sm-4 col-md-3 col-lg-2 mb-4">
-                <div class="card bg-dark h-100 position-relative">
+                <div class="card bg-dark h-100 position-relative movie-card">
                     <img src="${apiService.getImageUrl(movie.poster_path)}" 
                          class="card-img-top" 
                          alt="${movie.title}"
                          title="${movie.title}"
                          onerror="this.src='../assets/images/placeholder.jpg'">
+                    <div class="movie-card-overlay">
+                        <h6 class="movie-title">${movie.title}</h6>
+                        <div class="movie-info">
+                            <span class="badge bg-warning">
+                                <i class="fas fa-star"></i> ${movie.vote_average?.toFixed(1)}
+                            </span>
+                            <span class="badge bg-info">
+                                <i class="fas fa-clock"></i> ${movie.runtime}m
+                            </span>
+                        </div>
+                        <div class="movie-actions mt-2">
+                            <button class="btn btn-sm btn-danger remove-btn" 
+                                    data-movie-id="${movie.id}"
+                                    title="Remove from history">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
