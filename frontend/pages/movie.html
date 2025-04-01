@@ -13,6 +13,9 @@
     
         <!-- Page Specific Styles -->
         <link rel="stylesheet" href="../assets/css/style.css">
+        <style>
+            
+        </style>
 <!-- Update the style section in the head -->
     </head>
 <body class="">
@@ -59,8 +62,8 @@
             </div>
         </div>
 
-        <!-- Similar Movies Section -->
-        <div class="container py-5">
+         <!-- Similar Movies Section -->
+         <div class="container py-5">
             <div class="row g-4" id="similar-movies">
                 <div class="col-12 text-center">
                     <div class="spinner-border" role="status">
@@ -69,11 +72,27 @@
                 </div>
             </div>
         </div>
-        
-        <!-- Disqus Comments Section -->
+
+        <div id="movie-trailer">
+            <!-- Trailer will be loaded here -->
+        </div>
+
+        <!-- Replace the reviews section -->
         <div class="container py-5">
-            <h3 class="text-center">Comments</h3>
-            <div id="disqus_thread"></div>
+            <div class="reviews-section">
+                <h3 class="mb-4">
+                    <i class="far fa-comment-alt me-2"></i>
+                    Reviews & Discussions
+                </h3>
+                <div id="reviews-container">
+                    <div class="text-center">
+                        <div class="spinner-border text-light" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="reviews-pagination" class="mt-4"></div>
+            </div>
         </div>
 
     </div>
@@ -89,31 +108,5 @@
     <script src="../assets/js/auth.js"></script>
     <script src="../assets/js/movie.js"></script>
     
-    <!-- Disqus Integration -->
-    <script>
-        function loadDisqus() {
-            var urlParams = new URLSearchParams(window.location.search);
-            var movieId = urlParams.get('id');
-            
-            if (!movieId) {
-                console.error('Movie ID not found in URL');
-                return;
-            }
-            
-            var disqus_config = function () {
-                this.page.url = window.location.href;
-                this.page.identifier = "movie-" + movieId;
-            };
-            
-            (function() {
-                var d = document, s = d.createElement('script');
-                s.src = 'https://uflix-1.disqus.com/embed.js'; // Replace with your Disqus shortname
-                s.setAttribute('data-timestamp', +new Date());
-                (d.head || d.body).appendChild(s);
-            })();
-        }
-        
-        document.addEventListener("DOMContentLoaded", loadDisqus);
-    </script>
 </body>
 </html>

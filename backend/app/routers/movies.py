@@ -312,32 +312,68 @@ async def get_movie_details(movie_id: int):
 @router.get("/{movie_id}/similar")
 async def get_similar_movies(
     movie_id: int, 
-    page: int = Query(1, ge=1),
-    limit: int = Query(8, ge=1, le=20),
-    current_user: Optional[User] = Depends(get_current_user_optional),
-    db: Session = Depends(get_db)  # Add DB session
+    limit: int = Query(25, ge=1, le=50)
 ):
+    """Get similar movies"""
     try:
-        # Get data from TMDB with pagination
-        response = tmdb_service.get_similar_movies(movie_id, page)
+        response = tmdb_service.get_similar_movies(movie_id, limit)
         
-        # Get results and apply limit
-        results = response.get("results", [])[:limit]
-        total_results = response.get("total_results", 0)
-        
-        # If user is authenticated, add watch status
-        if current_user:
-            watched_movies = get_user_watch_history(current_user.id, db)  # Pass db session
-            for movie in results:
-                movie["is_watched"] = movie["id"] in watched_movies
-        
+        # Transform response to match frontend expectations
+        movies = response.get("results", [])
+        if not movies:
+            return {
+                "movies": [],
+                "total_results": 0
+            }
+            
         return {
-            "results": results,
-            "page": page,
-            "total_pages": math.ceil(total_results / limit),
-            "total_results": total_results
+            "movies": [
+                {
+                    "id": movie["id"],
+                    "title": movie["title"],
+                    "poster_path": movie["poster_path"],
+                    "release_date": movie["release_date"],
+                    "vote_average": movie["vote_average"],
+                    "overview": movie["overview"]
+                }
+                for movie in movies
+            ],
+            "total_results": len(movies)
         }
-        
     except Exception as e:
         logger.error(f"Error getting similar movies: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/{movie_id}/reviews")
+async def get_movie_reviews(
+    movie_id: int,
+    page: int = Query(1, ge=1)
+):
+    """Get reviews for a specific movie"""
+    try:
+        response = tmdb_service.get_movie_reviews(movie_id, page)
+        return {
+            "results": response.get("results", []),
+            "page": response.get("page", 1),
+            "total_pages": response.get("total_pages", 1),
+            "total_results": response.get("total_results", 0)
+        }
+    except Exception as e:
+        logger.error(f"Error getting movie reviews: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/{movie_id}/videos")
+async def get_movie_videos(movie_id: int):
+    """Get videos for a movie"""
+    try:
+        response = tmdb_service.get_movie_videos(movie_id)
+        # Filter for YouTube trailers only
+        videos = [
+            video for video in response.get("results", [])
+            if video["site"].lower() == "youtube" 
+            and video["type"].lower() == "trailer"
+        ]
+        return {"videos": videos}
+    except Exception as e:
+        logger.error(f"Error getting movie videos: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

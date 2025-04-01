@@ -5,8 +5,29 @@
 
 class ApiService {
     constructor() {
-        this.baseUrl = 'https://moviereco-hh5q.onrender.com';
+        // Use environment-aware base URL
+        this.baseUrl = window.location.hostname === 'localhost' || 
+                      window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:8000'  // Local development
+            : 'https://moviereco-hh5q.onrender.com';  // Production
         this.imageBaseUrl = 'https://image.tmdb.org/t/p/w500';
+        this.isRefreshing = false;
+        this.failedQueue = [];
+        this.loadingStates = new Map();
+        this.cache = new Map();
+        this.cacheDuration = 5 * 60 * 1000; // 5 minutes
+        this.requestQueue = [];
+        this.maxConcurrentRequests = 4;
+        this.activeRequests = 0;
+    }
+
+    setLoading(key, state) {
+        this.loadingStates.set(key, state);
+        this.notifyLoadingListeners(key, state);
+    }
+
+    isLoading(key) {
+        return this.loadingStates.get(key) || false;
     }
 
     getAuthHeaders() {
@@ -16,6 +37,10 @@ class ApiService {
 
     // Generic API call method with error handling
     async apiCall(endpoint, options = {}) {
+        if (!navigator.onLine) {
+            throw new Error('No internet connection');
+        }
+
         const defaultOptions = {
             headers: {
                 'Content-Type': 'application/json',
@@ -42,14 +67,20 @@ class ApiService {
             const response = await fetch(`${this.baseUrl}${endpoint}`, finalOptions);
             
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error('API error response:', errorText);
-                throw new Error(errorText);
+                const errorData = await response.json().catch(() => null);
+                throw {
+                    status: response.status,
+                    message: errorData?.detail || 'An error occurred',
+                    data: errorData
+                };
             }
-
             return response.json();
         } catch (error) {
-            console.error('API Error:', error);
+            if (!navigator.onLine) {
+                // Handle offline state
+                this.notifyOffline();
+            }
+            console.error(`API Error (${endpoint}):`, error);
             throw error;
         }
     }
@@ -96,36 +127,18 @@ class ApiService {
         }
     }
 
-    async getSimilarMovies(movieId, page = 1, limit = 8) {
+    async getSimilarMovies(movieId) {
         try {
-            const token = localStorage.getItem('token');
-            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-            
-            const response = await this.apiCall(`/movies/${movieId}/similar?page=${page}&limit=${limit}`, {
-                headers: headers
-            });
-            
+            console.log('Fetching similar movies for:', movieId);
+            const response = await this.apiCall(`/movies/${movieId}/similar?limit=25`);
+            console.log('Similar movies response:', response);
             return {
-                movies: response.results || [],
-                current_page: page,
-                total_pages: Math.ceil((response.total_results || 0) / limit)
+                movies: response.movies || [],
+                total_results: response.total_results || 0
             };
         } catch (error) {
             console.error('Error fetching similar movies:', error);
-            if (error.status === 401) {
-                // Handle unauthorized error gracefully
-                return {
-                    movies: [],
-                    current_page: 1,
-                    total_pages: 1,
-                    error: 'Authentication required'
-                };
-            }
-            return {
-                movies: [],
-                current_page: 1,
-                total_pages: 1
-            };
+            return { movies: [], total_results: 0 };
         }
     }
 
@@ -380,7 +393,98 @@ class ApiService {
             throw error;
         }
     }
+
+    async getMovieReviews(movieId, page = 1) {
+        try {
+            console.log(`Fetching reviews for movie ${movieId}, page ${page}`);
+            const response = await this.apiCall(`/movies/${movieId}/reviews?page=${page}`);
+            console.log('Reviews API response:', response);
+            return response;
+        } catch (error) {
+            console.error('Error fetching movie reviews:', error);
+            return {
+                results: [],
+                page: 1,
+                total_pages: 1,
+                total_results: 0
+            };
+        }
+    }
+
+    async refreshToken() {
+        try {
+            const response = await this.apiCall('/auth/refresh', {
+                method: 'POST',
+                body: JSON.stringify({
+                    refresh_token: localStorage.getItem('refresh_token')
+                })
+            });
+            localStorage.setItem('token', response.access_token);
+            return response.access_token;
+        } catch (error) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('refresh_token');
+            window.location.href = '/landing.html';
+            throw error;
+        }
+    }
+
+    getCached(key) {
+        const cached = this.cache.get(key);
+        if (cached && Date.now() - cached.timestamp < this.cacheDuration) {
+            return cached.data;
+        }
+        return null;
+    }
+
+    setCache(key, data) {
+        this.cache.set(key, {
+            data,
+            timestamp: Date.now()
+        });
+    }
+
+    async queueRequest(request) {
+        this.requestQueue.push(request);
+        await this.processQueue();
+    }
+
+    async processQueue() {
+        if (this.activeRequests >= this.maxConcurrentRequests) return;
+        
+        while (this.requestQueue.length && this.activeRequests < this.maxConcurrentRequests) {
+            const request = this.requestQueue.shift();
+            this.activeRequests++;
+            try {
+                await request();
+            } finally {
+                this.activeRequests--;
+                this.processQueue();
+            }
+        }
+    }
+
+    destroy() {
+        this.cache.clear();
+        this.loadingStates.clear();
+        this.failedQueue = [];
+    }
+
+    async getMovieVideos(movieId) {
+        try {
+            const response = await this.apiCall(`/movies/${movieId}/videos`);
+            return response.videos || [];
+        } catch (error) {
+            console.error('Error fetching movie videos:', error);
+            return [];
+        }
+    }
 }
 
 // Create a singleton instance
 const apiService = new ApiService();
+
+// Add to your page cleanup code
+window.addEventListener('unload', () => {
+    apiService.destroy();
+});

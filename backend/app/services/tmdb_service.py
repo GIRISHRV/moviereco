@@ -132,5 +132,43 @@ class TMDBService:
             logger.error(f"Error fetching movie from TMDB: {str(e)}")
             return None
 
+    def get_movie_reviews(self, movie_id: int, page: int = 1) -> Dict:
+        """Get reviews for a movie from TMDB API"""
+        return self._make_request(
+            f"/movie/{movie_id}/reviews",
+            params={
+                "page": page,
+                "language": "en-US"
+            }
+        )
+
+    def get_similar_movies(self, movie_id: int, limit: int = 25) -> Dict:
+        """Get similar movies from TMDB API"""
+        try:
+            response = self._make_request(
+                f"/movie/{movie_id}/similar",
+                params={
+                    "page": 1,
+                    "language": "en-US"
+                }
+            )
+            
+            # Get and limit results
+            results = response.get("results", [])[:limit]
+            return {
+                "results": results,
+                "total_results": len(results)
+            }
+        except Exception as e:
+            logger.error(f"Error getting similar movies: {e}")
+            return {"results": [], "total_results": 0}
+
+    def get_movie_videos(self, movie_id: int) -> Dict:
+        """Get videos (trailers, teasers etc) for a movie"""
+        return self._make_request(
+            f"/movie/{movie_id}/videos",
+            params={"language": "en-US"}
+        )
+
 # Create a singleton instance
 tmdb_service = TMDBService()
