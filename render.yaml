@@ -1,6 +1,7 @@
 services:
+  # Backend service
   - type: web
-    name: mrs-backend
+    name: moviereco
     env: python
     buildCommand: pip install -r backend/requirements.txt
     startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
@@ -9,3 +10,12 @@ services:
         value: 3.9.0
       - key: PYTHONPATH
         value: ./backend
+
+  # Frontend service
+  - type: static
+    name: moviereco-frontend
+    buildCommand: mkdir -p dist && cp -r frontend/* dist/
+    staticPublishPath: ./dist
+    envVars:
+      - key: API_URL
+        value: https://mrs-backend.onrender.com

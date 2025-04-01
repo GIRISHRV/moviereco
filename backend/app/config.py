@@ -25,7 +25,7 @@ class Settings(BaseSettings):
 
     # CORS settings
     cors_origins: List[str] = []
-    frontend_url: str = "http://127.0.0.1:5500"
+    frontend_url: str = "https://moviereco-frontend.onrender.com"
 
     class Config:
         env_file = ".env"
