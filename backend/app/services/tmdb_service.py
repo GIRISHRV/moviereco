@@ -15,9 +15,10 @@ class TMDBService:
     BASE_URL = "https://api.themoviedb.org/3"
     
     def __init__(self):
-        self.api_key = "0bd68a06943ae5626db6781dba9948c5"
+        self.api_key = "b47eca218230f5060c3b60ce11f3a070"
         self.base_url = "https://api.themoviedb.org/3"
-        self.session = None
+        self.bearer_token = "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJiNDdlY2EyMTgyMzBmNTA2MGMzYjYwY2UxMWYzYTA3MCIsIm5iZiI6MTc0MzUzMDI3OS4wNDksInN1YiI6IjY3ZWMyOTI3NmI1NzA0MDE2MzJmYmQ4NiIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.d8IgDiUdaiXjHwIN5lAY5d--OekpeHpscEF_UDiVLRs"
+        self.session = aiohttp.ClientSession()
     
     def _make_request(self, endpoint: str, params: Optional[Dict[str, Any]] = None) -> Dict:
         """Make a request to TMDB API with adult content filtered"""
@@ -61,38 +62,11 @@ class TMDBService:
     def get_movie_genres(self) -> Dict:
         """Get all movie genres"""
         return self._make_request("/genre/movie/list")
-    
-    def discover_movies(self, params: Dict[str, Any]) -> Dict:
-        """Discover movies with filters"""
-        # Ensure adult content is filtered even if params include it
-        params['include_adult'] = False
-        return self._make_request("/discover/movie", params)
 
     def get_similar_movies(self, movie_id: int, page: int = 1) -> Dict:
         """Get similar movies from TMDB API"""
         return self._make_request(f"/movie/{movie_id}/similar")
     
-    async def get_movies_by_genre(self, genre_id: int, page: int = 1) -> dict:
-        """Get movies by genre ID from TMDB"""
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(
-                    f"{self.base_url}/discover/movie",
-                    params={
-                        "api_key": self.api_key,
-                        "with_genres": genre_id,
-                        "language": "en-US",
-                        "sort_by": "popularity.desc",
-                        "include_adult": False,
-                        "page": page
-                    }
-                )
-                response.raise_for_status()
-                return response.json()
-                
-        except httpx.RequestError as e:
-            logger.error(f"TMDB API error: {str(e)}")
-            raise Exception(f"Failed to fetch movies: {str(e)}")
 
     async def get_movie(self, movie_id: int) -> dict:
         """Get detailed information about a specific movie from TMDB."""
@@ -169,6 +143,52 @@ class TMDBService:
             f"/movie/{movie_id}/videos",
             params={"language": "en-US"}
         )
+
+    async def discover_movies(self, params: dict) -> dict:
+        """Get discovered movies from TMDB"""
+        try:
+            url = f"{self.base_url}/discover/movie"
+            
+            headers = {
+                "Authorization": f"Bearer {self.bearer_token}",
+                "accept": "application/json"
+            }
+
+            # Remove api_key from params since we're using bearer token
+            api_params = {
+                "include_adult": params.get("include_adult", False),
+                "include_video": params.get("include_video", False),
+                "language": params.get("language", "en-US"),
+                "page": params.get("page", 1),
+                "sort_by": params.get("sort_by", "popularity.desc")
+            }
+            
+            if params.get("with_genres"):
+                api_params["with_genres"] = params["with_genres"]
+                
+            if params.get("primary_release_year"):
+                api_params["primary_release_year"] = params["primary_release_year"]
+
+            logger.info(f"Making TMDB API request to: {url}")
+            logger.info(f"With params: {api_params}")
+            
+            async with self.session.get(url, params=api_params, headers=headers) as response:
+                response.raise_for_status()
+                data = await response.json()
+                
+                logger.info(f"TMDB Status: {response.status}")
+                logger.info(f"Results count: {len(data.get('results', []))}")
+                
+                return data
+                    
+        except Exception as e:
+            logger.error(f"TMDB discover movies error: {str(e)}")
+            return {
+                "results": [],
+                "page": 1,
+                "total_pages": 1,
+                "total_results": 0
+            }
 
 # Create a singleton instance
 tmdb_service = TMDBService()

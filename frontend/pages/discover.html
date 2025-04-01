@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Discover Movies - Cineplex</title>
+    <title>Discover Movies - MovieReco</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="../assets/css/style.css">
 </head>
-<body class="text-white">
+<body class="">
     <!-- Sidebar -->
     <div id="mySidebar" class="sidebar">
         <p href="javascript:void(0)" class="close-btn" onclick="toggleSidebar()">&times;</p>
@@ -26,24 +26,152 @@
         <button class="sidebar-toggle" onclick="toggleSidebar()">
             <i class="fas fa-bars"></i>
         </button>
-        
-        <div class="search-container">
-            
-        </div>
+        <div class="search-container"></div>
     </nav>
 
     <!-- Main Content -->
     <div id="main-content">
         <div class="container py-5">
-            <!-- Genres Section -->
-            <div class="mb-5">
-                <h2 class="mb-4">Browse by Genre</h2>
-                <div class="row g-4" id="genres-grid">
-                    <!-- Genres will be loaded here -->
-                    <div id="loading-spinner" class="text-center w-100">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
+            <div class="row">
+                <!-- Filters Column -->
+                <div class="col-lg-3 mb-4">
+                    <div class="filters-sidebar">
+                        <!-- Genre Filter -->
+                        <div class="filter-category">
+                            <h4 class="mb-3">
+                                <i class="fas fa-film me-2"></i>Genres
+                            </h4>
+                            <div id="genre-filters" class="row">
+                                <!-- Genres will be inserted here by JavaScript -->
+                            </div>
                         </div>
+
+                        <!-- Sort Filter -->
+                        <div class="filter-category mb-4">
+                            <h4 class="mb-3">
+                                <i class="fas fa-sort-amount-down me-2"></i>Sort By
+                            </h4>
+                            <select class="form-select bg-dark text-light" id="sort-filter">
+                                <option value="popularity.desc">Most Popular</option>
+                                <option value="vote_average.desc">Highest Rated</option>
+                                <option value="release_date.desc">Latest</option>
+                                <option value="revenue.desc">Highest Revenue</option>
+                            </select>
+                        </div>
+
+                        <!-- Year Filter -->
+                        <div class="filter-category mb-4">
+                            <h4 class="mb-3">
+                                <i class="fas fa-calendar me-2"></i>Release Year
+                            </h4>
+                            <input type="number" 
+                                   class="form-control bg-dark text-light" 
+                                   id="year-filter" 
+                                   placeholder="Enter year"
+                                   min="1900" 
+                                   max="2024">
+                        </div>
+
+                        <!-- Add after the existing filters -->
+                        <div class="filter-category mb-4">
+                            <h4 class="mb-3">
+                                <i class="fas fa-star me-2"></i>Rating Filters
+                            </h4>
+                            <div class="mb-3">
+                                <label class="form-label">Minimum Rating</label>
+                                <select class="form-select bg-dark text-light" id="rating-filter">
+                                    <option value="">Any Rating</option>
+                                    <option value="7">7+ Rating</option>
+                                    <option value="8">8+ Rating</option>
+                                    <option value="9">9+ Rating</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Minimum Vote Count</label>
+                                <select class="form-select bg-dark text-light" id="vote-count-filter">
+                                    <option value="">Any</option>
+                                    <option value="100">100+ votes</option>
+                                    <option value="500">500+ votes</option>
+                                    <option value="1000">1000+ votes</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="filter-category mb-4">
+                            <h4 class="mb-3">
+                                <i class="fas fa-globe me-2"></i>Language Filter
+                            </h4>
+                            <select class="form-select bg-dark text-light" id="language-filter">
+                                <option value="en">English</option>
+                                <option value="es">Spanish</option>
+                                <option value="fr">French</option>
+                                <option value="de">German</option>
+                                <option value="hi">Hindi</option>
+                                <option value="ja">Japanese</option>
+                                <option value="ko">Korean</option>
+                            </select>
+                        </div>
+
+                        <!-- Add after existing filters -->
+                        <div class="filter-category mb-4">
+                            <h4 class="mb-3">
+                                <i class="fas fa-clock me-2"></i>Runtime (minutes)
+                            </h4>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <input type="number" 
+                                           class="form-control bg-dark text-light" 
+                                           id="runtime-min" 
+                                           placeholder="Min"
+                                           min="0">
+                                </div>
+                                <div class="col-6">
+                                    <input type="number" 
+                                           class="form-control bg-dark text-light" 
+                                           id="runtime-max" 
+                                           placeholder="Max"
+                                           min="0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Add this after the existing filters in discover.html -->
+                        <div class="filter-category mb-4">
+                            <h4 class="mb-3">
+                                <i class="fas fa-eye me-2"></i>Content Filter
+                            </h4>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="adult-filter">
+                                <label class="form-check-label" for="adult-filter">
+                                    Include Adult Content
+                                </label>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Movies Column -->
+                <div class="col-lg-9">
+                    <!-- Results Count -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        
+                    </div>
+                    
+                    <!-- Active Filters -->
+                    <div id="active-filters" class="mb-4">
+                        <!-- Active filters will appear here -->
+                    </div>
+
+                    <!-- Movies Grid -->
+                    <div id="movies-grid" class="row g-4">
+                        <h3 id="results-count">Click on a filter to load movies</h3>
+                        
+                    </div>
+
+                    <!-- Pagination -->
+                    <div id="pagination" class="mt-4">
+                        <!-- Pagination will be added here -->
                     </div>
                 </div>
             </div>
@@ -53,7 +181,6 @@
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../assets/js/api.js"></script>
-    <script src="../assets/js/auth.js"></script>
     <script src="../assets/js/discover.js"></script>
 </body>
 </html>

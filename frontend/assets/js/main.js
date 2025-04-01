@@ -5,23 +5,44 @@
 
 class MovieApp {
     constructor() {
+        console.log('🎬 MovieApp: Constructor called');
+        
         // DOM elements
         this.popularMoviesContainer = document.getElementById('popular-movies');
         this.genresContainer = document.getElementById('genres-container');
         this.searchForm = document.getElementById('search-form');
         this.searchInput = document.getElementById('search-input');
         
-        this.init();
-        
-        // Setup search functionality
-        this.setupSearch();
+        console.log('📍 DOM Elements:', {
+            popularMovies: !!this.popularMoviesContainer,
+            genres: !!this.genresContainer,
+            searchForm: !!this.searchForm,
+            searchInput: !!this.searchInput
+        });
+
+        // Initialize after DOM is fully loaded
+        if (document.readyState === 'loading') {
+            console.log('🔄 Document still loading, adding DOMContentLoaded listener');
+            document.addEventListener('DOMContentLoaded', () => this.init());
+        } else {
+            console.log('📄 Document already loaded, initializing immediately');
+            this.init();
+        }
     }
     
     async init() {
-        // Load initial data
-        this.loadPopularMovies();
-        this.loadGenres();
-        this.bindEvents();
+        console.log('🚀 MovieApp: Initializing...');
+        try {
+            console.log('📥 Loading initial data...');
+            await Promise.all([
+                this.loadPopularMovies(),
+                this.loadGenres()
+            ]);
+            this.bindEvents();
+            console.log('✅ Initialization complete');
+        } catch (error) {
+            console.error('❌ Initialization error:', error);
+        }
     }
     
     bindEvents() {
@@ -48,9 +69,14 @@ class MovieApp {
     }
 
     async loadPopularMovies(page = 1) {
-        if (!this.popularMoviesContainer) return;
+        if (!this.popularMoviesContainer) {
+            console.error('❌ Popular movies container not found');
+            return;
+        }
         
         try {
+            console.log(`📽️ Loading popular movies page ${page}...`);
+            
             // Show loading state
             this.popularMoviesContainer.innerHTML = `
                 <div class="text-center py-5">
@@ -61,20 +87,32 @@ class MovieApp {
             `;
 
             const response = await apiService.getPopularMovies(page);
+            console.log('📦 Popular movies response:', response);
             
-            // Extract movies array and pagination data
+            if (!response || !Array.isArray(response.movies)) {
+                console.error('❌ Invalid response format:', response);
+                throw new Error('Invalid response format');
+            }
+
             const { movies, current_page, total_pages } = response;
+            console.log(`📊 Received ${movies.length} movies, page ${current_page}/${total_pages}`);
             
-            if (!movies.length) {
+            if (!movies || movies.length === 0) {
+                console.warn('⚠️ No movies returned');
                 this.popularMoviesContainer.innerHTML = `
                     <div class="col-12 text-center">
-                        <div class="alert alert-info">No movies found.</div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            No movies found. Please try refreshing the page.
+                            <button onclick="location.reload()" class="btn btn-link">Refresh</button>
+                        </div>
                     </div>
                 `;
                 return;
             }
 
-            // Create container with pagination
+            // Render movies grid with pagination
+            console.log('🎨 Rendering movies...');
             this.popularMoviesContainer.innerHTML = `
                 <div class="row g-4">
                     ${movies.map(movie => this.createMovieCard(movie)).join('')}
@@ -82,18 +120,19 @@ class MovieApp {
                 ${this.renderPagination(current_page, total_pages)}
             `;
 
-            // Add watch button handlers after rendering
+            // Setup handlers after content is rendered
+            console.log('🔗 Setting up event handlers...');
             this.attachWatchButtonHandlers();
-            
-            // Setup pagination handlers
             this.setupPaginationHandlers();
 
         } catch (error) {
-            console.error('Error loading popular movies:', error);
+            console.error('❌ Error loading popular movies:', error);
             this.popularMoviesContainer.innerHTML = `
                 <div class="col-12 text-center">
                     <div class="alert alert-danger">
-                        Failed to load popular movies. Please try again later.
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        Failed to load movies. 
+                        <button onclick="location.reload()" class="btn btn-link">Try Again</button>
                     </div>
                 </div>
             `;
@@ -299,27 +338,21 @@ class MovieApp {
     }
 }
 
-// Initialize the app
+// Initialize the app with debugging
+console.log('📝 Script loaded, creating MovieApp instance');
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🌟 DOMContentLoaded fired');
     window.movieApp = new MovieApp();
 });
+
+// Log readyState changes
+document.onreadystatechange = () => {
+    console.log('📄 Document readyState:', document.readyState);
+};
 
 // Add to assets/js/main.js
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Remove or comment out any modal initialization code here
-    // const modals = document.querySelectorAll('.modal');
-    // modals.forEach(modal => new bootstrap.Modal(modal));
-    
-    // Navbar background change on scroll
-    const navbar = document.querySelector('.navbar');
-    window.addEventListener('scroll', () => {
-        if (window.scrollY > 50) {
-            navbar.classList.add('scrolled');
-        } else {
-            navbar.classList.remove('scrolled');
-        }
-    });
 
     // Image loading animation
     const images = document.querySelectorAll('img');

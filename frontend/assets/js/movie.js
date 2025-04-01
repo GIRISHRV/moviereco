@@ -5,40 +5,97 @@
 
 class MoviePage {
     constructor() {
-        this.movieId = this.getMovieIdFromUrl();
-        if (!this.movieId) {
-            console.error('No movie ID found in URL');
-            this.showError('Invalid movie ID');
-            return;
-        }
-
-        // Initialize container references
-        this.movieDetailsContainer = document.getElementById('movie-details');
-        this.similarMoviesContainer = document.getElementById('similar-movies');
-        // Add reviews container
-        this.reviewsContainer = document.getElementById('reviews-container');
-        this.reviewsPagination = document.getElementById('reviews-pagination');
-        this.trailerContainer = document.getElementById('movie-trailer');
-
-        if (!this.movieDetailsContainer) {
-            console.error('Movie details container not found');
-            return;
-        }
-
+        this.isAuthenticated = false;
         this.hasWatched = false;
-        this.loadingState = {
-            details: true,
-            similar: true,
-            watchState: true
-        };
+        this.watchHistoryCache = new Set();
         
-        this.isAuthenticated = this.checkAuthStatus();
-        this.init();
+        // Wait for DOM to be fully loaded before initializing
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.initialize());
+        } else {
+            this.initialize();
+        }
     }
 
+    async initialize() {
+        try {
+            this.movieId = this.getMovieIdFromUrl();
+            if (!this.movieId) {
+                console.error('No movie ID found in URL');
+                this.showError('Invalid movie ID');
+                return;
+            }
+
+            // Initialize container references
+            this.movieDetailsContainer = document.getElementById('movie-details');
+            this.similarMoviesContainer = document.getElementById('similar-movies');
+            this.reviewsContainer = document.getElementById('reviews-container');
+            this.reviewsPagination = document.getElementById('reviews-pagination');
+            this.trailerContainer = document.getElementById('movie-trailer');
+
+            // Check auth status first
+            this.isAuthenticated = this.checkAuthStatus();
+            
+            // If authenticated, load watch history
+            if (this.isAuthenticated) {
+                await this.loadWatchHistory();
+            }
+
+            // Show initial loading state
+            this.showLoading();
+
+            // Load all data
+            await this.loadMovieData();
+
+        } catch (error) {
+            console.error('Initialization error:', error);
+            this.showError('Failed to initialize page');
+        }
+    }
+
+    validateMovieData(movie) {
+        if (!movie) return false;
+        
+        const requiredFields = ['id', 'title', 'release_date', 'vote_average'];
+        return requiredFields.every(field => movie[field] !== undefined && movie[field] !== null);
+    }
     getMovieIdFromUrl() {
         const urlParams = new URLSearchParams(window.location.search);
         return urlParams.get('id');
+    }
+
+    async loadMovieData(retryCount = 3) {
+        try {
+            console.log('🎬 Loading movie data for ID:', this.movieId);
+            
+            // Load all data in parallel
+            const [movieDetails, similarMovies, reviews, videos] = await Promise.all([
+                this.loadMovieDetails(),
+                this.loadSimilarMovies(),
+                this.loadReviews(),
+                this.loadTrailer()
+            ]);
+
+            // Additional validation
+            if (!movieDetails || !movieDetails.title) {
+                throw new Error('Invalid movie details received');
+            }
+
+            console.log('✅ Movie data loaded successfully');
+
+        } catch (error) {
+            console.error('❌ Error loading movie data:', error);
+            
+            if (retryCount > 0) {
+                console.log(`🔄 Retrying... (${retryCount} attempts left)`);
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                await this.loadMovieData(retryCount - 1);
+            } else {
+                this.showError('Failed to load movie details. Please refresh the page.');
+            }
+        } finally {
+            this.hideLoading();
+        }
     }
 
     async init() {
@@ -127,40 +184,41 @@ class MoviePage {
 
     updateWatchButton() {
         const watchButton = document.getElementById('watch-button');
-        if (watchButton) {
-            if (this.hasWatched) {
-                watchButton.classList.remove('btn-outline-light');
-                watchButton.classList.add('btn-secondary');
-                watchButton.innerHTML = '<i class="fas fa-check"></i> Marked as Watched';
-                watchButton.disabled = true;
-            } else {
-                watchButton.classList.remove('btn-secondary');
-                watchButton.classList.add('btn-outline-light');
-                watchButton.innerHTML = '<i class="fas fa-plus"></i> Mark as Watched';
-                watchButton.disabled = false;
-            }
+        if (!watchButton) {
+            console.warn('⚠️ Watch button not found');
+            return;
+        }
+
+        console.log('🔄 Updating watch button, hasWatched:', this.hasWatched);
+        
+        if (this.hasWatched) {
+            watchButton.classList.remove('btn-outline-light');
+            watchButton.classList.add('btn-secondary');
+            watchButton.innerHTML = '<i class="fas fa-check"></i> Watched';
+            watchButton.disabled = true;
+        } else {
+            watchButton.classList.remove('btn-secondary');
+            watchButton.classList.add('btn-outline-light');
+            watchButton.innerHTML = '<i class="fas fa-plus"></i> Mark as Watched';
+            watchButton.disabled = false;
         }
     }
 
     async loadMovieDetails() {
         try {
+            console.log('📥 Fetching movie details...');
             const movie = await apiService.getMovieDetails(this.movieId);
-            this.renderMovieDetails(movie);
             
-            // Reset Disqus for new movie
-            if (window.DISQUS) {
-                window.DISQUS.reset({
-                    reload: true,
-                    config: function () {
-                        this.page.identifier = `movie_${this.movieId}`;
-                        this.page.url = window.location.href;
-                        this.page.title = movie.title;
-                    }
-                });
+            if (!this.validateMovieData(movie)) {
+                throw new Error('Invalid movie data received');
             }
+    
+            console.log('📦 Movie details:', movie);
+            this.renderMovieDetails(movie);
+            return movie;
         } catch (error) {
-            console.error('Error loading movie details:', error);
-            this.showError('Failed to load movie details');
+            console.error('❌ Error loading movie details:', error);
+            throw error;
         }
     }
 
@@ -238,13 +296,82 @@ class MoviePage {
     
     async loadTrailer() {
         try {
+            console.log('🎬 Loading trailer for movie:', this.movieId);
             const videos = await apiService.getMovieVideos(this.movieId);
-            if (videos.length > 0) {
-                const trailer = videos[0]; // Get first trailer
-                this.renderTrailer(trailer);
+            console.log('📽️ Videos response:', videos);
+
+            if (!videos || !videos.length) {
+                console.log('⚠️ No videos found');
+                this.renderNoTrailer();
+                return;
             }
+
+            // Find the first official trailer
+            const trailer = videos.find(video => 
+                video.type?.toLowerCase() === 'trailer' && 
+                video.site?.toLowerCase() === 'youtube'
+            ) || videos[0];
+
+            console.log('🎥 Selected trailer:', trailer);
+            this.renderTrailer(trailer);
         } catch (error) {
-            console.error('Error loading trailer:', error);
+            console.error('❌ Error loading trailer:', error);
+            this.renderNoTrailer();
+        }
+    }
+
+    renderTrailer(trailer) {
+        if (!this.trailerContainer) return;
+
+        this.trailerContainer.innerHTML = `
+            <div class="container py-5">
+                <h3 class="mb-4">
+                    <i class="fas fa-film me-2"></i>Official Trailer
+                </h3>
+                <div class="ratio ratio-16x9 rounded overflow-hidden shadow">
+                    <iframe 
+                        src="https://www.youtube.com/embed/${trailer.key}?rel=0"
+                        title="${trailer.name}"
+                        class="rounded"
+                        allowfullscreen
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    ></iframe>
+                </div>
+            </div>
+        `;
+    }
+
+    renderNoTrailer() {
+        if (!this.trailerContainer) return;
+
+        this.trailerContainer.innerHTML = `
+            <div class="container py-5">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No trailer available for this movie.
+                </div>
+            </div>
+        `;
+    }
+
+    async loadWatchHistory() {
+        try {
+            console.log('📝 Loading watch history...');
+            const history = await apiService.getWatchHistory();
+            
+            // Store IDs in cache
+            this.watchHistoryCache = new Set(history.map(m => m.tmdb_id.toString()));
+            
+            // Check if current movie is watched
+            this.hasWatched = this.watchHistoryCache.has(this.movieId.toString());
+            
+            console.log('✅ Watch history loaded, current movie watched:', this.hasWatched);
+            
+            // Update UI if needed
+            this.updateWatchButton();
+            
+        } catch (error) {
+            console.error('❌ Error loading watch history:', error);
         }
     }
 
@@ -254,7 +381,12 @@ class MoviePage {
             return;
         }
 
+        // Check authentication status first
+        this.isAuthenticated = this.checkAuthStatus();
+        console.log('🔐 Auth status:', this.isAuthenticated);
+
         const posterUrl = apiService.getImageUrl(movie.poster_path);
+        const rating = movie.vote_average ? (movie.vote_average / 2).toFixed(1) : 'N/A';
         
         this.movieDetailsContainer.innerHTML = `
             <div class="movie-content">
@@ -265,22 +397,32 @@ class MoviePage {
                                  class="img-fluid rounded movie-poster-detail" 
                                  alt="${movie.title}"
                                  onerror="this.onerror=null; this.src='../assets/images/placeholder.jpg';">
-                            ${this.isAuthenticated ? `
-                                <button id="watch-button" class="btn ${this.hasWatched ? 'btn-secondary' : 'btn-outline-light'} w-100 mt-3" 
-                                        data-movie-id="${movie.id}">
-                                    <i class="fas ${this.hasWatched ? 'fa-check' : 'fa-plus'}"></i> 
-                                    ${this.hasWatched ? 'Marked as Watched' : 'Mark as Watched'}
-                                </button>
-                            ` : ''}
+                            <div class="mt-3">
+                                ${this.isAuthenticated ? `
+                                    <button id="watch-button" 
+                                            class="btn ${this.hasWatched ? 'btn-secondary' : 'btn-outline-light'} w-100" 
+                                            data-movie-id="${movie.id}"
+                                            ${this.hasWatched ? 'disabled' : ''}>
+                                        <i class="fas ${this.hasWatched ? 'fa-check' : 'fa-plus'}"></i> 
+                                        ${this.hasWatched ? 'Watched' : 'Mark as Watched'}
+                                    </button>
+                                ` : ''}
+                            </div>
                         </div>
                         <div class="col-md-8">
                             <h2>${movie.title}</h2>
-                            <p class="text-muted">
-                                ${movie.release_date ? new Date(movie.release_date).getFullYear() : 'N/A'} | 
-                                ${movie.runtime ? `${movie.runtime} min` : 'N/A'} |
-                                ${movie.vote_average ? `${movie.vote_average.toFixed(1)}/10` : 'N/A'}
-                            </p>
-                            <p>${movie.overview || 'No overview available.'}</p>
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="me-3">
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="fas fa-star"></i> ${rating}
+                                    </span>
+                                </div>
+                                <div class="text-muted">
+                                    ${movie.release_date ? new Date(movie.release_date).getFullYear() : 'N/A'} | 
+                                    ${movie.runtime ? `${movie.runtime} min` : 'N/A'}
+                                </div>
+                            </div>
+                            <p class="lead">${movie.overview || 'No overview available.'}</p>
                             <div class="genres mb-3">
                                 ${movie.genres?.map(genre => 
                                     `<span class="badge bg-primary me-2">${genre.name}</span>`
@@ -306,14 +448,10 @@ class MoviePage {
                         watchButton.disabled = true;
                         watchButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Adding...';
                         
-                        await apiService.addToWatchHistory(movie.id);
-                        this.hasWatched = true;
-                        this.updateWatchButton();
-                        this.showToast('Added to watch history!', 'success');
+                        await this.addToWatchHistory(movie.id);
                     } catch (error) {
-                        console.error('Error adding to watch history:', error);
-                        this.showToast('Failed to update watch history', 'danger');
                         watchButton.disabled = false;
+                        this.updateWatchButton();
                     }
                 });
             }
@@ -417,24 +555,6 @@ class MoviePage {
         }
     }
     
-
-    renderTrailer(trailer) {
-        if (!this.trailerContainer) return;
-
-        this.trailerContainer.innerHTML = `
-            <div class="container py-5">
-                <h3 class="mb-4">Official Trailer</h3>
-                <div class="ratio ratio-16x9">
-                    <iframe 
-                        src="https://www.youtube.com/embed/${trailer.key}"
-                        title="${trailer.name}"
-                        allowfullscreen
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    ></iframe>
-                </div>
-            </div>
-        `;
-    }
 
     setupPaginationHandlers(container, callback) {
         if (!container) return;
@@ -564,6 +684,18 @@ class MoviePage {
                 </div>
             `;
         }
+
+        // Add loading state for trailer
+        if (this.trailerContainer) {
+            this.trailerContainer.innerHTML = `
+                <div class="container py-5 text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-3">Loading trailer...</p>
+                </div>
+            `;
+        }
     }
 
     hideLoading() {
@@ -573,21 +705,11 @@ class MoviePage {
 
     // Add a method to check and refresh authentication status
     checkAuthStatus() {
+        console.log('🔍 Checking auth status...');
         const token = localStorage.getItem('token');
-        if (token) {
-            try {
-                // Verify token is still valid (you might want to add a proper token verification)
-                this.isAuthenticated = true;
-                return true;
-            } catch (error) {
-                console.error('Invalid token:', error);
-                localStorage.removeItem('token');
-                this.isAuthenticated = false;
-                return false;
-            }
-        }
-        this.isAuthenticated = false;
-        return false;
+        const result = !!token;
+        console.log('🔐 Auth result:', result);
+        return result;
     }
 
     // Update event listeners at the bottom of the file
@@ -777,22 +899,26 @@ class MoviePage {
                     aria-label="Slide ${i + 1}"></button>
         `).join('');
     }
+
+    async addToWatchHistory(movieId) {
+        try {
+            await apiService.addToWatchHistory(movieId);
+            this.watchHistoryCache.add(movieId.toString());
+            this.hasWatched = true;
+            this.updateWatchButton();
+            this.showToast('Added to watch history!', 'success');
+        } catch (error) {
+            console.error('Error adding to watch history:', error);
+            this.showToast('Failed to update watch history', 'danger');
+            throw error;
+        }
+    }
 }
 
-// Initialize page
+// Initialize only after DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     const moviePage = new MoviePage();
     moviePage.initializeEventListeners();
-
-    // Set active link based on current page
-    const currentPath = window.location.pathname;
-    const navLinks = document.querySelectorAll('.sidebar .nav-link');
-    
-    navLinks.forEach(link => {
-        if (currentPath.includes(link.getAttribute('href'))) {
-            link.classList.add('active');
-        }
-    });
 });
 
 function toggleSidebar() {

@@ -19,6 +19,8 @@ class ApiService {
         this.requestQueue = [];
         this.maxConcurrentRequests = 4;
         this.activeRequests = 0;
+        this.tmdbBaseUrl = 'https://api.themoviedb.org/3';
+        this.tmdbToken = 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJiNDdlY2EyMTgyMzBmNTA2MGMzYjYwY2UxMWYzYTA3MCIsIm5iZiI6MTc0MzUzMDI3OS4wNDksInN1YiI6IjY3ZWMyOTI3NmI1NzA0MDE2MzJmYmQ4NiIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.d8IgDiUdaiXjHwIN5lAY5d--OekpeHpscEF_UDiVLRs';
     }
 
     setLoading(key, state) {
@@ -88,7 +90,7 @@ class ApiService {
     // Helper method for TMDB image URLs
     getImageUrl(path) {
         if (!path) return '../assets/images/placeholder.jpg';
-        return `${this.imageBaseUrl}${path}`;
+        return `https://image.tmdb.org/t/p/w500${path}`;
     }
 
     // Core movie methods
@@ -479,8 +481,70 @@ class ApiService {
             return [];
         }
     }
-}
 
+    async discoverMovies(params = {}) {
+        try {
+            console.log('📨 Original params:', params);
+
+            // Build clean params object
+            const cleanParams = {
+                // Required params
+                sort_by: params.sort_by || 'popularity.desc',
+                page: Number(params.page) || 1,
+                language: params.language || 'en-US',
+                include_adult: Boolean(params.include_adult),
+                include_video: false,
+
+                // Optional filters
+                with_genres: params.with_genres,
+                primary_release_year: params.primary_release_year,
+                'vote_average.gte': params['vote_average.gte'],
+                'vote_count.gte': params['vote_count.gte'],
+                'with_runtime.gte': params['with_runtime.gte'],
+                'with_runtime.lte': params['with_runtime.lte']
+            };
+
+            // Remove undefined/null values
+            Object.keys(cleanParams).forEach(key => {
+                if (cleanParams[key] === undefined || cleanParams[key] === null) {
+                    delete cleanParams[key];
+                }
+            });
+
+            console.log('🧹 Clean params:', cleanParams);
+
+            // Create query string
+            const queryString = new URLSearchParams(cleanParams).toString();
+
+            // Make API request
+            const response = await fetch(`${this.tmdbBaseUrl}/discover/movie?${queryString}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${this.tmdbToken}`,
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('📩 TMDb API Response:', data);
+
+            return {
+                results: data.results || [],
+                page: data.page || 1,
+                total_pages: data.total_pages || 1,
+                total_results: data.total_results || 0
+            };
+
+        } catch (error) {
+            console.error('❌ Error discovering movies:', error);
+            throw error;
+        }
+    }
+}    
 // Create a singleton instance
 const apiService = new ApiService();
 

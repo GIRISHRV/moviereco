@@ -108,63 +108,7 @@ class ProfilePage {
         }
     }
     
-    updateProfileDisplay() {
-        if (!this.userData) return;
-        
-        // Update profile picture
-        const profileAvatar = document.querySelector('.user-avatar');
-        if (profileAvatar) {
-            let avatarUrl;
-            
-            if (this.userData.avatar_url) {
-                // Always use the avatarsPath for local files
-                avatarUrl = `${this.avatarsPath}/${this.userData.avatar_url}`;
-                console.log('Setting avatar URL:', avatarUrl);
-            } else {
-                avatarUrl = `${this.avatarsPath}/default.png`;
-                console.log('Using default avatar:', avatarUrl);
-            }
-
-            profileAvatar.src = avatarUrl;
-            profileAvatar.onerror = () => {
-                console.error('Failed to load avatar:', avatarUrl);
-                profileAvatar.src = `${this.avatarsPath}/default.png`;
-            };
-
-            // Also update preview if it exists
-            if (this.avatarPreview) {
-                this.avatarPreview.src = avatarUrl;
-                this.avatarPreview.onerror = () => {
-                    this.avatarPreview.src = `${this.avatarsPath}/default.png`;
-                };
-            }
-        }
-
-        // Update other profile information
-        if (this.profileUsername) {
-            this.profileUsername.textContent = this.userData.username;
-        }
-        if (this.profileEmail) {
-            this.profileEmail.textContent = this.userData.email;
-        }
-        // Update user statistics
-        if (this.moviesRatedCount) {
-            this.moviesRatedCount.textContent = this.userData.rated_movies?.length || 0;
-        }
-        
-        if (this.moviesWatchedCount) {
-            this.moviesWatchedCount.textContent = this.userData.watch_history?.length || 0;
-        }
-        
-        if (this.favoriteGenres) {
-            const genres = this.userData.preferences?.map(genre => genre.name).slice(0, 3).join(', ') || '-';
-            this.favoriteGenres.textContent = genres;
-        }
-        
-        // Populate edit profile form
-        document.getElementById('edit-username').value = this.userData.username;
-        document.getElementById('edit-email').value = this.userData.email;
-    }
+    
     
     async loadWatchHistory() {
         if (!this.recentlyWatchedContainer || !this.userData) return;
@@ -229,48 +173,7 @@ class ProfilePage {
         });
     }
     
-    async updateProfile(e) {
-        e.preventDefault();
-        const spinner = this.showLoadingSpinner();
-        
-        try {
-            const formData = new FormData();
-            
-            const username = document.getElementById('edit-username').value;
-            const email = document.getElementById('edit-email').value;
-            const password = document.getElementById('edit-password').value;
-            const selectedAvatar = document.getElementById('selected-avatar').value;
-            
-            if (username) formData.append('username', username);
-            if (email) formData.append('email', email);
-            if (password) formData.append('password', password);
-            if (selectedAvatar) formData.append('avatar', selectedAvatar);
-            
-            const response = await apiService.updateProfile(formData);
-            
-            // Update local user data
-            this.userData = response;
-            
-            // Update display
-            this.updateProfileDisplay();
-            
-            // Hide modal
-            const editProfileModal = bootstrap.Modal.getInstance(
-                document.getElementById('editProfileModal')
-            );
-            editProfileModal?.hide();
-            
-            this.showToast('Profile updated successfully', 'success');
-        } catch (error) {
-            console.error('Error updating profile:', error);
-            this.showToast(
-                error.response?.detail || error.message || 'Failed to update profile', 
-                'danger'
-            );
-        } finally {
-            this.hideLoadingSpinner(spinner);
-        }
-    }
+    
     
     async removeFromWatchlist(movieId) {
         // In a real app, this would call the backend to remove the movie from watchlist

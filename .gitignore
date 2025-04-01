@@ -25,3 +25,5 @@ Thumbs.db
 backend/.env
 
 app.db
+frontend/assets/css/css-checker.exe
+
