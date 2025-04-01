@@ -5,7 +5,7 @@
 
 class ApiService {
     constructor() {
-        this.baseUrl = 'https://mrs-gm8v.onrender.com/';
+        this.baseUrl = 'https://moviereco-hh5q.onrender.com';
         this.imageBaseUrl = 'https://image.tmdb.org/t/p/w500';
     }
 
