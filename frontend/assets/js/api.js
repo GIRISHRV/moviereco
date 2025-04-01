@@ -5,7 +5,7 @@
 
 class ApiService {
     constructor() {
-        this.baseUrl = 'https://moviereco-hh5q.onrender.com';
+        this.baseUrl = 'https://moviereco.onrender.com';
         this.imageBaseUrl = 'https://image.tmdb.org/t/p/w500';
     }
 
@@ -16,12 +16,20 @@ class ApiService {
 
     // Generic API call method with error handling
     async apiCall(endpoint, options = {}) {
+        const defaultOptions = {
+            credentials: 'include',  // Important for CORS
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        };
+        
+        const finalOptions = { ...defaultOptions, ...options };
         const url = `${this.baseUrl}${endpoint}`;
         
         try {
             console.log(`API request: ${options.method || 'GET'} ${endpoint}`, options);
             
-            const response = await fetch(url, options);
+            const response = await fetch(url, finalOptions);
             console.log(`API response status: ${response.status} ${response.statusText}`);
             
             if (!response.ok) {

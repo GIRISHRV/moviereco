@@ -14,11 +14,14 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Movie Recommendation System")
 
-# CORS middleware configuration
+# Update CORS middleware configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins
-    allow_credentials=False,
+    allow_origins=[
+        "https://moviereco-frontend.onrender.com",
+        "http://localhost:8080",  # For local development
+    ],
+    allow_credentials=True,  # Important for authentication
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"]
