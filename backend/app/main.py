@@ -17,12 +17,9 @@ app = FastAPI(title="Movie Recommendation System")
 # Update CORS middleware configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://moviereco-frontend.onrender.com",
-        "http://localhost:8080",  # For local development
-    ],
-    allow_credentials=True,  # Changed to True for authentication
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_origins=["*"],  # Allow all origins
+    allow_credentials=False,  # Set to False
+    allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"]
 )

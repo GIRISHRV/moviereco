@@ -9,7 +9,7 @@ services:
       - key: FRONTEND_URL
         value: https://moviereco-frontend.onrender.com
       - key: ALLOW_CREDENTIALS
-        value: "true"
+        value: "false"
 
   # Frontend service
   - type: static

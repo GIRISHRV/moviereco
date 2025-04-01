@@ -112,9 +112,8 @@ async def auth_options_handler(path: str):
         status_code=200,
         content={"detail": "OK"},
         headers={
-            "Access-Control-Allow-Origin": "https://moviereco-frontend.onrender.com",
-            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization",
-            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "*",
+            "Access-Control-Allow-Headers": "*"
         }
     )

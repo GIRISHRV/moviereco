@@ -5,7 +5,7 @@
 
 class ApiService {
     constructor() {
-        this.baseUrl = 'https://moviereco.onrender.com';
+        this.baseUrl = 'https://moviereco-hh5q.onrender.com';
         this.imageBaseUrl = 'https://image.tmdb.org/t/p/w500';
     }
 
@@ -17,7 +17,6 @@ class ApiService {
     // Generic API call method with error handling
     async apiCall(endpoint, options = {}) {
         const defaultOptions = {
-            credentials: 'include',  // Important for CORS
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
