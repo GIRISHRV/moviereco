@@ -117,23 +117,19 @@ async def test_endpoint():
 async def get_movie_details(movie_id: int):
     try:
         logger.info(f"Fetching details for movie: {movie_id}")
-        # Get movie details directly from TMDB
         response = tmdb_service.get_movie_details(movie_id)
-        print(f"TMDB Movie Details Response: {response}")
-
-        # Transform response to match frontend expectations
-        movie_details = {
+        
+        return {
             "id": response.get("id"),
             "title": response.get("title"),
             "overview": response.get("overview"),
             "poster_path": response.get("poster_path"),
             "backdrop_path": response.get("backdrop_path"),
             "release_date": response.get("release_date"),
-            "runtime": response.get("runtime"),
+            "runtime": response.get("runtime", 0),  # Add runtime here
             "vote_average": response.get("vote_average"),
             "genres": response.get("genres", [])
         }
-        return movie_details
     except Exception as e:
         logger.error(f"Error in get_movie_details: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

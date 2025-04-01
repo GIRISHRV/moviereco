@@ -33,9 +33,10 @@ class Movie(Base):
     vote_average = Column(Float)
     vote_count = Column(Integer)
     popularity = Column(Float)
-    adult = Column(Boolean, default=False, nullable=False)  # Add this line
+    runtime = Column(Integer, nullable=True)  # Add this line
+    adult = Column(Boolean, default=False, nullable=False)
 
-    # Relationships
+    # Relationships remain the same
     genres = relationship("Genre", secondary="movie_genre", back_populates="movies")
     watchers = relationship(
         "User",

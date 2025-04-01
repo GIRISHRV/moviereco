@@ -118,11 +118,18 @@ class ApiService {
 
     async getMovieDetails(movieId) {
         try {
-            // Use the common apiCall method instead of direct fetch
             const response = await this.apiCall(`/movies/${movieId}`, {
-                headers: this.getAuthHeaders() // Use the correct method name
+                headers: this.getAuthHeaders()
             });
-            return response;
+            
+            // Log the full response to see runtime
+            console.log('Movie details response:', response);
+            
+            // Make sure runtime is included in the returned data
+            return {
+                ...response,
+                runtime: response.runtime || 0 // Add runtime field
+            };
         } catch (error) {
             console.error('Error fetching movie details:', error);
             throw error;
@@ -352,17 +359,19 @@ class ApiService {
 
     async addToWatchHistory(movieId) {
         try {
+            console.log('📝 Adding movie to watch history:', movieId);
             const response = await this.apiCall('/users/watch-history', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 },
-                body: JSON.stringify({ movie_id: movieId })
+                body: JSON.stringify({ movie_id: parseInt(movieId) })
             });
+            console.log('✅ Movie added to watch history:', response);
             return response;
         } catch (error) {
-            console.error('Error adding to watch history:', error);
+            console.error('❌ Error adding to watch history:', error);
             throw error;
         }
     }
@@ -542,6 +551,45 @@ class ApiService {
         } catch (error) {
             console.error('❌ Error discovering movies:', error);
             throw error;
+        }
+    }
+
+    async getUserProfile() {
+        try {
+            console.log('📥 Fetching user profile...');
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                throw new Error('No auth token found');
+            }
+
+            const response = await this.apiCall('/users/profile', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response) {
+                throw new Error('No response from server');
+            }
+
+            console.log('📦 Profile response:', response);
+
+            return {
+                id: response.id,
+                username: response.username,
+                email: response.email,
+                created_at: response.created_at,
+                avatar: response.avatar_url || null
+            };
+
+        } catch (error) {
+            console.error('❌ Error fetching user profile:', error);
+            if (error.status === 405) {
+                console.error('Method not allowed. Check API endpoint implementation.');
+            }
+            throw new Error('Failed to load user profile');
         }
     }
 }    

@@ -414,6 +414,12 @@ html {
     border-radius: 50%;
     border: 3px solid #fff;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.3s;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.user-avatar:hover {
+    transform: scale(1.05);
 }
 
 .profile-header {
@@ -694,10 +700,14 @@ html {
     background-color: var(--netflix-dark);
     border: none;
     transition: transform 0.3s ease;
+    transition: transform 0.2s, box-shadow 0.2s;
+    background: rgba(33, 37, 41, 0.95) !important;
 }
 
 .card:hover {
     transform: scale(1.05);
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
 }
 
 .modal-content {
@@ -1378,5 +1388,123 @@ body.home .top-navbar .container-fluid {
 /* Section spacing */
 .py-5 {
     padding: 3rem 0;
+}
+
+/* Profile Page Styles */
+.avatar-container {
+    width: 80px;
+    height: 80px;
+}
+
+.avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, var(--bs-primary), var(--bs-primary-rgb));
+}
+
+.card {
+    transition: transform 0.2s;
+    transition: transform 0.2s, box-shadow 0.2s;
+    background: rgba(33, 37, 41, 0.95) !important;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+
+.user-avatar {
+    transition: transform 0.3s;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.user-avatar:hover {
+    transform: scale(1.05);
+}
+
+.display-4 {
+    font-size: 3rem;
+}
+
+.card-title {
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+#watch-history .card {
+    transition: all 0.3s ease;
+}
+
+#watch-history .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.btn-group .btn {
+    transition: all 0.2s;
+}
+
+.btn-group .btn:hover {
+    transform: translateY(-2px);
+}
+
+.stats-card {
+    border-radius: 15px;
+    border: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+#watch-history .card-img-top {
+    height: 200px;
+    object-fit: cover;
+}
+
+.remove-btn {
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.card:hover .remove-btn {
+    opacity: 1;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .avatar-container {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .stats-card {
+        margin-bottom: 1rem;
+    }
+}
+
+/* Update watch history card styles */
+#watch-history .card {
+    width: 150px;
+    margin: 0 auto;
+    transition: all 0.3s ease;
+}
+
+#watch-history .card-img-top {
+    height: 225px; /* 3:2 aspect ratio */
+    object-fit: cover;
+}
+
+#watch-history .remove-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    background: rgba(0,0,0,0.7);
+    border: none;
+    padding: 5px 8px;
+    font-size: 0.8rem;
+}
+
+#watch-history .card:hover .remove-btn {
+    opacity: 1;
 }
 
