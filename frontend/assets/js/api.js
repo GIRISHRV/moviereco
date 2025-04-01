@@ -20,49 +20,35 @@ class ApiService {
             credentials: 'include',  // Important for CORS
             headers: {
                 'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                ...this.getAuthHeaders(),
             },
         };
         
-        const finalOptions = { ...defaultOptions, ...options };
-        const url = `${this.baseUrl}${endpoint}`;
-        
+        // Special handling for form data
+        if (options.body instanceof URLSearchParams) {
+            defaultOptions.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+        }
+
+        const finalOptions = {
+            ...defaultOptions,
+            ...options,
+            headers: {
+                ...defaultOptions.headers,
+                ...(options.headers || {})
+            }
+        };
+
         try {
-            console.log(`API request: ${options.method || 'GET'} ${endpoint}`, options);
-            
-            const response = await fetch(url, finalOptions);
-            console.log(`API response status: ${response.status} ${response.statusText}`);
+            const response = await fetch(`${this.baseUrl}${endpoint}`, finalOptions);
             
             if (!response.ok) {
-                console.error('API error response:', {
-                    status: response.status,
-                    statusText: response.statusText
-                });
-                
-                // Try to parse the error response
-                let errorData;
-                try {
-                    const errorText = await response.text();
-                    console.log('Error response text:', errorText);
-                    
-                    try {
-                        errorData = JSON.parse(errorText);
-                        console.error('Error response data:', errorData);
-                    } catch (jsonError) {
-                        console.error('Failed to parse error response as JSON');
-                        errorData = { detail: errorText };
-                    }
-                } catch (readError) {
-                    console.error('Failed to read error response:', readError);
-                }
-                
-                const error = new Error(`HTTP error! status: ${response.status}`);
-                error.response = errorData;
-                throw error;
+                const errorText = await response.text();
+                console.error('API error response:', errorText);
+                throw new Error(errorText);
             }
-            
-            const data = await response.json();
-            console.log('API response data:', data);
-            return data;
+
+            return response.json();
         } catch (error) {
             console.error('API Error:', error);
             throw error;

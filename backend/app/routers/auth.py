@@ -105,3 +105,16 @@ async def login(
 @router.get("/me", response_model=UserResponse)
 def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+@router.options("/{path:path}")
+async def auth_options_handler(path: str):
+    return JSONResponse(
+        status_code=200,
+        content={"detail": "OK"},
+        headers={
+            "Access-Control-Allow-Origin": "https://moviereco-frontend.onrender.com",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+            "Access-Control-Allow-Credentials": "true",
+        }
+    )
