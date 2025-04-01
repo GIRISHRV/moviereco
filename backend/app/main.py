@@ -21,7 +21,7 @@ app.add_middleware(
         "https://moviereco-frontend.onrender.com",
         "http://localhost:8080",  # For local development
     ],
-    allow_credentials=True,  # Important for authentication
+    allow_credentials=False,  # Important for authentication
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"]
