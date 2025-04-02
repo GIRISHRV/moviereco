@@ -228,19 +228,9 @@ class ProfilePage {
                     <div class="movie-card-overlay">
                         <h6 class="movie-title">${movie.title}</h6>
                         <div class="movie-info">
-                            <span class="badge bg-warning">
-                                <i class="fas fa-star"></i> ${movie.vote_average?.toFixed(1)}
-                            </span>
                             <span class="badge bg-info">
                                 <i class="fas fa-clock"></i> ${movie.runtime}m
                             </span>
-                        </div>
-                        <div class="movie-actions mt-2">
-                            <button class="btn btn-sm btn-danger remove-btn" 
-                                    data-movie-id="${movie.id}"
-                                    title="Remove from history">
-                                <i class="fas fa-trash"></i>
-                            </button>
                         </div>
                     </div>
                 </div>

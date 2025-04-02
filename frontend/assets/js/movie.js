@@ -15,6 +15,8 @@ class MoviePage {
         } else {
             this.initialize();
         }
+
+        this.setupRatingHandlers = this.setupRatingHandlers.bind(this);
     }
 
     async initialize() {
@@ -375,7 +377,7 @@ class MoviePage {
         }
     }
 
-    renderMovieDetails(movie) {
+    async renderMovieDetails(movie) {
         if (!this.movieDetailsContainer) {
             console.error('Cannot render movie details: Container not found');
             return;
@@ -433,6 +435,28 @@ class MoviePage {
                 </div>
             </div>
         `;
+
+        // Add rating stars
+        const ratingContainer = document.createElement('div');
+        ratingContainer.className = 'rating-container mb-3';
+        ratingContainer.innerHTML = `
+            <div class="d-flex align-items-center">
+                <div class="rating-stars me-2">
+                    ${this.createRatingStars()}
+                </div>
+                <small class="text-muted" id="rating-text">Rate this movie</small>
+            </div>
+        `;
+
+        // Insert after movie title
+        const movieTitle = this.movieDetailsContainer.querySelector('h2');
+        movieTitle.parentNode.insertBefore(ratingContainer, movieTitle.nextSibling);
+
+        // Setup rating handlers
+        this.setupRatingHandlers();
+        
+        // Load user's rating
+        await this.loadUserRating(movie.id);
 
         // Add watch button handler after rendering
         if (this.isAuthenticated) {
@@ -604,6 +628,13 @@ class MoviePage {
                 </div>
             </div>
         `;
+    }
+
+    createSimilarMovieCard(movie) {
+        return createMovieCard(movie, {
+            showWatchButton: this.isAuthenticated,
+            isWatched: this.watchHistoryCache.has(movie.id.toString())
+        });
     }
 
     showError(message, type = 'danger') {
@@ -911,6 +942,70 @@ class MoviePage {
             console.error('Error adding to watch history:', error);
             this.showToast('Failed to update watch history', 'danger');
             throw error;
+        }
+    }
+
+    createRatingStars() {
+        return Array.from({ length: 5 }, (_, i) => `
+            <i class="fas fa-star rating-star" 
+               data-rating="${i + 1}" 
+               title="${i + 1} stars"></i>
+        `).join('');
+    }
+
+    async loadUserRating(movieId) {
+        const rating = await apiService.getMovieRating(movieId);
+        if (rating) {
+            this.updateRatingDisplay(rating);
+        }
+    }
+
+    setupRatingHandlers() {
+        console.log('🌟 Setting up rating handlers');
+        const stars = document.querySelectorAll('.rating-star');
+        const ratingText = document.getElementById('rating-text');
+
+        stars.forEach(star => {
+            star.addEventListener('mouseenter', () => {
+                console.log('⭐ Mouse enter on star:', star.dataset.rating);
+                const rating = parseInt(star.dataset.rating);
+                this.highlightStars(rating);
+            });
+
+            star.addEventListener('mouseleave', async () => {
+                console.log('⭐ Mouse leave star');
+                const currentRating = await apiService.getMovieRating(this.movieId);
+                this.highlightStars(currentRating || 0);
+            });
+
+            star.addEventListener('click', async () => {
+                const rating = parseInt(star.dataset.rating);
+                console.log('⭐ Rating clicked:', rating);
+                
+                try {
+                    await apiService.rateMovie(this.movieId, rating);
+                    this.updateRatingDisplay(rating);
+                    this.showToast('Rating updated successfully', 'success');
+                } catch (error) {
+                    console.error('❌ Rating error:', error);
+                    this.showToast('Failed to update rating', 'danger');
+                }
+            });
+        });
+    }
+
+    highlightStars(rating) {
+        const stars = document.querySelectorAll('.rating-star');
+        stars.forEach((star, index) => {
+            star.classList.toggle('text-warning', index < rating);
+        });
+    }
+
+    updateRatingDisplay(rating) {
+        this.highlightStars(rating);
+        const ratingText = document.getElementById('rating-text');
+        if (ratingText) {
+            ratingText.textContent = `Your rating: ${rating} stars`;
         }
     }
 }

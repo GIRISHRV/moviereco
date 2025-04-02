@@ -50,6 +50,7 @@ class User(Base):
     )
     watchlist_entries = relationship("Watchlist", back_populates="user")
     ratings_entries = relationship("Rating", back_populates="user", cascade="all, delete-orphan")
+    ratings = relationship("Rating", back_populates="user")
     
     def set_password(self, password):
         self.hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()

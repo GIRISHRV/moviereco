@@ -17,49 +17,61 @@ function toggleSidebar() {
 
 class YourSpace {
     constructor() {
-        this.watchHistoryContainer = document.getElementById('watch-history-container');
-        this.recommendationsContainer = document.getElementById('recommendations-container');
-        
-        this.isAuthenticated = localStorage.getItem('token') !== null;
-        
-        // Verify apiService is available
-        if (typeof apiService === 'undefined') {
-            console.error('API Service not loaded!');
-            this.showError('Failed to initialize API service');
-            return;
-        }
-        
-        this.showLoadingState();
+        console.log('🚀 Initializing Your Space...');
+        this.setupContainers();
         this.init();
     }
 
-    showLoadingState() {
-        const loadingTemplate = `
-            <div class="text-center py-4">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <p class="mt-2 text-muted">Loading content...</p>
-            </div>
-        `;
-
-        if (this.watchHistoryContainer) {
-            this.watchHistoryContainer.innerHTML = loadingTemplate;
+    setupContainers() {
+        this.ratingsContainer = document.getElementById('ratings-container');
+        if (!this.ratingsContainer) {
+            console.error('❌ Ratings container not found!');
         }
-        if (this.recommendationsContainer) {
-            this.recommendationsContainer.innerHTML = loadingTemplate;
+        
+        this.watchHistoryContainer = document.getElementById('watch-history-container');
+        if (!this.watchHistoryContainer) {
+            console.error('❌ Watch history container not found!');
+        }
+        
+        this.recommendationsContainer = document.getElementById('recommendations-container');
+        if (!this.recommendationsContainer) {
+            console.error('❌ Recommendations container not found!');
         }
     }
 
     async init() {
         try {
-            // Remove model training and just load content
-            await Promise.all([
-                this.loadWatchHistory(),
-                this.loadRecommendations()
-            ]);
+            console.log('📥 Loading user data...');
+            await this.loadRatings();
+            await this.loadWatchHistory();
+            await this.loadRecommendations();
         } catch (error) {
-            console.error('Error initializing Your Space:', error);
+            console.error('❌ Error initializing:', error);
+            this.showError(error.message);
+        }
+    }
+
+    async loadRatings() {
+        console.log('🌟 Loading ratings...');
+        try {
+            // Show loading state
+            this.ratingsContainer.innerHTML = this.getLoadingHTML();
+
+            const response = await apiService.getUserRatings();
+            console.log('📦 Ratings loaded:', response);
+
+            if (!response?.ratings?.length) {
+                this.ratingsContainer.innerHTML = this.getEmptyStateHTML('ratings');
+                return;
+            }
+
+            this.ratingsContainer.innerHTML = response.ratings
+                .map(movie => this.createRatingCard(movie))
+                .join('');
+
+        } catch (error) {
+            console.error('❌ Ratings error:', error);
+            this.ratingsContainer.innerHTML = this.getErrorHTML('Failed to load ratings');
         }
     }
 
@@ -120,26 +132,73 @@ class YourSpace {
         }
     }
 
-    createMovieCard(movie) {
+    createMovieCard(movie, options = {}) {
+        const {
+            showWatchButton = false,
+            showRemoveButton = false,
+            showRating = true,
+            isWatched = false
+        } = options;
+
         return `
-            <div class="col-md-2 col-sm-4 col-6 mb-4">
-                <div class="card bg-dark text-white movie-card h-100">
-                    <div class="card-img-wrapper position-relative">
-                        <img src="https://image.tmdb.org/t/p/w500${movie.poster_path}" 
-                             class="card-img-top" 
-                             alt="${movie.title}"
-                             onerror="this.src='../assets/images/placeholder.jpg'">
-                    </div>
+            <div class="col-6 col-sm-4 col-md-3 col-lg-2 mb-4">
+                <div class="card bg-dark h-100 movie-card">
+                    <img src="${apiService.getImageUrl(movie.poster_path)}" 
+                         class="card-img-top" 
+                         alt="${movie.title}"
+                         title="${movie.title}"
+                         onerror="this.src='../assets/images/placeholder.jpg'">
                     <div class="card-body d-flex flex-column">
-                        <h6 class="card-title text-truncate mb-1">${movie.title}</h6>
-                        <small class="text-muted mb-2">
-                            ${new Date(movie.watched_at || movie.release_date).getFullYear()}
-                        </small>
-                        <div class="mt-auto">
-                            <button class="btn btn-sm btn-danger w-100 remove-watch-btn" 
-                                    data-movie-id="${movie.id}">
-                                <i class="fas fa-trash-alt me-1"></i>Remove
-                            </button>
+                        <h6 class="card-title text-truncate mb-2">${movie.title}</h6>
+                        ${showRating ? `
+                            <div class="ratings-container">
+                                ${movie.rating ? `
+                                    <div class="user-rating mb-2">
+                                        <small class="text-muted">Your Rating:</small>
+                                        <div class="rating-stars">
+                                            ${Array.from({ length: 5 }, (_, i) => `
+                                                <i class="fas fa-star ${i < movie.rating ? 'text-warning' : 'text-muted'}"></i>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                ${movie.vote_average ? `
+                                    <div class="tmdb-rating mb-2">
+                                        <small class="text-muted">TMDB Rating:</small>
+                                        <div class="rating-stars">
+                                            ${Array.from({ length: 5 }, (_, i) => `
+                                                <i class="fas fa-star ${i < (movie.vote_average/2) ? 'text-info' : 'text-muted'}"></i>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        ` : ''}
+                        <div class="movie-metadata mb-3">
+                            <small class="text-muted">
+                                ${movie.watched_at 
+                                    ? `Watched: ${new Date(movie.watched_at).toLocaleDateString()}`
+                                    : movie.release_date 
+                                        ? new Date(movie.release_date).getFullYear() 
+                                        : 'N/A'
+                                }
+                            </small>
+                        </div>
+                        <div class="mt-auto d-grid gap-2">
+                            <a href="movie.html?id=${movie.tmdb_id || movie.id}" 
+                               class="btn btn-primary btn-sm">View Details</a>
+                            ${showWatchButton && !isWatched ? `
+                                <button class="btn btn-sm btn-outline-light watch-btn" 
+                                        data-movie-id="${movie.id}">
+                                    <i class="fas fa-plus me-1"></i>Watch
+                                </button>
+                            ` : ''}
+                            ${showRemoveButton ? `  
+                                <button class="btn btn-sm btn-outline-danger remove-btn" 
+                                        data-movie-id="${movie.id}">
+                                    <i class="fas fa-trash-alt me-1"></i>Remove
+                                </button>
+                            ` : ''}
                         </div>
                     </div>
                 </div>
@@ -148,59 +207,63 @@ class YourSpace {
     }
 
     createWatchHistoryCard(movie) {
-        const releaseDate = movie.release_date ? new Date(movie.release_date).getFullYear() : 'N/A';
-        return `
-            <div class="col-md-3 col-sm-6 mb-4">
-                <div class="card h-100 movie-card">
-                    <img src="${apiService.getImageUrl(movie.poster_path)}" 
-                         class="card-img-top" 
-                         alt="${movie.title}"
-                         onerror="this.onerror=null; this.src='../assets/images/placeholder.jpg';">
-                    <div class="card-body">
-                        <h5 class="card-title text-truncate" title="${movie.title}">${movie.title}</h5>
-                        <p class="card-text">
-                            <small class="text-muted">${releaseDate}</small>
-                            <span class="float-end">
-                                <i class="fas fa-star text-warning"></i> 
-                                ${movie.vote_average?.toFixed(1) || 'N/A'}
-                            </span>
-                        </p>
-                        <div class="d-grid gap-2">
-                            <a href="movie.html?id=${movie.tmdb_id || movie.id}" 
-                               class="btn btn-primary">View Details</a>
-                            <button class="btn btn-outline-danger remove-watch-btn" 
-                                    data-movie-id="${movie.id}">
-                                <i class="fas fa-trash-alt"></i> Remove
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
+        return this.createMovieCard(movie, {
+            showWatchButton: false,
+            showRemoveButton: true,
+            isWatched: true
+        });
     }
 
     createRecommendationCard(movie) {
-        const releaseDate = movie.release_date ? new Date(movie.release_date).getFullYear() : 'N/A';
+        return this.createMovieCard(movie, {
+            showWatchButton: true,
+            showRemoveButton: false
+        });
+    }
+
+    createRatingCard(movie) {
+        const dateDisplay = movie.rated_at 
+            ? `Rated on ${new Date(movie.rated_at).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+              })}`
+            : '';
+    
         return `
-            <div class="col-md-3 col-sm-6 mb-4">
-                <div class="card h-100 movie-card">
+            <div class="col-6 col-sm-4 col-md-3 col-lg-2 mb-4">
+                <div class="card bg-dark h-100 movie-card">
                     <img src="${apiService.getImageUrl(movie.poster_path)}" 
                          class="card-img-top" 
                          alt="${movie.title}"
-                         onerror="this.onerror=null; this.src='../assets/images/placeholder.jpg';">
-                    <div class="card-body">
-                        <h5 class="card-title text-truncate" title="${movie.title}">${movie.title}</h5>
-                        <p class="card-text">
-                            <small class="text-muted">${releaseDate}</small>
-                            <span class="float-end">
-                                <i class="fas fa-star text-warning"></i> 
-                                ${movie.vote_average?.toFixed(1) || 'N/A'}
-                            </span>
-                        </p>
-                        <div class="d-grid gap-2">
+                         title="${movie.title}"
+                         onerror="this.src='../assets/images/placeholder.jpg'">
+                    <div class="card-body d-flex flex-column">
+                        <h6 class="card-title text-truncate mb-2">${movie.title}</h6>
+                        <div class="ratings-container">
+                            <div class="user-rating mb-2">
+                                <small class="text-muted">Your Rating:</small>
+                                <div class="rating-stars">
+                                    ${Array.from({ length: 5 }, (_, i) => `
+                                        <i class="fas fa-star ${i < movie.rating ? 'text-warning' : 'text-muted'}"></i>
+                                    `).join('')}
+                                </div>
+                                <small class="text-muted mt-1">${dateDisplay}</small>
+                            </div>
+                            ${movie.vote_average ? `
+                                <div class="tmdb-rating mt-2">
+                                    <small class="text-muted">TMDB Rating:</small>
+                                    <div class="rating-stars">
+                                        ${Array.from({ length: 5 }, (_, i) => `
+                                            <i class="fas fa-star ${i < (movie.vote_average/2) ? 'text-info' : 'text-muted'}"></i>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div class="mt-auto">
                             <a href="movie.html?id=${movie.tmdb_id || movie.id}" 
-                               class="btn btn-primary">View Details</a>
-                            
+                               class="btn btn-primary btn-sm w-100">View Details</a>
                         </div>
                     </div>
                 </div>
@@ -226,38 +289,64 @@ class YourSpace {
         });
     }
 
-    showError(message) {
-        const errorHtml = `
+    getLoadingHTML() {
+        return `
+            <div class="col-12 text-center">
+                <div class="spinner-border text-light" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        `;
+    }
+
+    getEmptyStateHTML(type) {
+        return `
+            <div class="col-12 text-center">
+                <p class="text-muted">No ${type} yet.</p>
+                <a href="discover.html" class="btn btn-primary">
+                    <i class="fas fa-film me-2"></i>Discover Movies
+                </a>
+            </div>
+        `;
+    }
+
+    getErrorHTML(message) {
+        return `
             <div class="col-12">
                 <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>
                     ${message}
                 </div>
             </div>
         `;
-        
-        if (this.watchHistoryContainer) {
-            this.watchHistoryContainer.innerHTML = errorHtml;
-        }
-        if (this.recommendationsContainer) {
-            this.recommendationsContainer.innerHTML = errorHtml;
-        }
     }
 
-    showLoading(container) {
-        if (container) {
-            container.innerHTML = `
-                <div class="text-center col-12">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
+    showError(message) {
+        console.error('❌ Error:', message);
+    }
+
+    showLoadingState() {
+        const loadingTemplate = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
                 </div>
-            `;
+                <p class="mt-2 text-muted">Loading content...</p>
+            </div>
+        `;
+
+        if (this.watchHistoryContainer) {
+            this.watchHistoryContainer.innerHTML = loadingTemplate;
+        }
+        if (this.recommendationsContainer) {
+            this.recommendationsContainer.innerHTML = loadingTemplate;
         }
     }
 }
 
 // Initialize when DOM is loaded AND verify API service is available
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🎥 Initializing Your Space page...');
     // Check if API service is loaded
     if (typeof apiService === 'undefined') {
         console.error('API Service not loaded. Check script inclusion order.');

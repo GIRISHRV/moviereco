@@ -2,7 +2,22 @@
  * Main JavaScript for the Movie Recommendation System
  * Handles UI interactions and data display
  */
-
+// Add at the beginning of the file
+function toggleSidebar() {
+    const sidebar = document.getElementById("mySidebar");
+    const mainContent = document.getElementById("main-content");
+    const overlay = document.querySelector(".sidebar-overlay");
+    
+    if (sidebar.classList.contains("active")) {
+        sidebar.classList.remove("active");
+        mainContent.classList.remove("shifted");
+        overlay.style.display = "none";
+    } else {
+        sidebar.classList.add("active");
+        mainContent.classList.add("shifted");
+        overlay.style.display = "block";
+    }
+}
 class MovieApp {
     constructor() {
         console.log('🎬 MovieApp: Constructor called');
@@ -12,13 +27,18 @@ class MovieApp {
         this.genresContainer = document.getElementById('genres-container');
         this.searchForm = document.getElementById('search-form');
         this.searchInput = document.getElementById('search-input');
+        this.featuredCarousel = document.querySelector('#featuredCarousel .carousel-inner');
         
         console.log('📍 DOM Elements:', {
             popularMovies: !!this.popularMoviesContainer,
             genres: !!this.genresContainer,
             searchForm: !!this.searchForm,
-            searchInput: !!this.searchInput
+            searchInput: !!this.searchInput,
+            featuredCarousel: !!this.featuredCarousel
         });
+
+        // Check authentication status
+        this.isAuthenticated = !!localStorage.getItem('token');
 
         // Initialize after DOM is fully loaded
         if (document.readyState === 'loading') {
@@ -35,6 +55,7 @@ class MovieApp {
         try {
             console.log('📥 Loading initial data...');
             await Promise.all([
+                this.loadFeaturedMovies(),
                 this.loadPopularMovies(),
                 this.loadGenres()
             ]);
@@ -336,6 +357,98 @@ class MovieApp {
             spinner.parentNode.removeChild(spinner);
         }
     }
+
+    showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `toast align-items-center text-white bg-${type} border-0`;
+        toast.setAttribute('role', 'alert');
+        toast.setAttribute('aria-live', 'assertive');
+        toast.setAttribute('aria-atomic', 'true');
+        
+        toast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        `;
+        
+        document.body.appendChild(toast);
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
+        
+        toast.addEventListener('hidden.bs.toast', () => {
+            document.body.removeChild(toast);
+        });
+    }
+
+    async loadFeaturedMovies() {
+        if (!this.featuredCarousel) {
+            console.log('⚠️ Featured carousel not found, skipping');
+            return;
+        }
+
+        try {
+            console.log('🎭 Loading featured movies...');
+            const response = await apiService.getPopularMovies(); // Using getPopularMovies instead
+            console.log('📦 Featured movies response:', response);
+
+            const movies = response.movies?.slice(0, 5); // Update to use response.movies
+            if (!movies?.length) {
+                console.warn('⚠️ No featured movies found');
+                return;
+            }
+
+            this.featuredCarousel.innerHTML = movies.map((movie, index) => `
+                <div class="carousel-item ${index === 0 ? 'active' : ''}">
+                    <div class="featured-backdrop" 
+                         style="background-image: url('${apiService.getBackdropUrl(movie.backdrop_path)}')">
+                    </div>
+                    <div class="featured-overlay"></div>
+                    <div class="featured-content">
+                        <div class="featured-info">
+                            <h1 class="featured-title">${movie.title}</h1>
+                            <div class="featured-meta">
+                                <div class="featured-rating">
+                                    <i class="fas fa-star"></i>
+                                    <span>${movie.vote_average.toFixed(1)}</span>
+                                </div>
+                                <span>${new Date(movie.release_date).getFullYear()}</span>
+                            </div>
+                            <p class="featured-overview">${movie.overview}</p>
+                            <div class="featured-buttons">
+                                <a href="pages/movie.html?id=${movie.id}" 
+                                   class="btn btn-primary btn-lg me-2">
+                                    <i class="fas fa-info-circle me-2"></i>More Info
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Initialize Bootstrap carousel
+            new bootstrap.Carousel(document.getElementById('featuredCarousel'), {
+                interval: 5000,
+                pause: 'hover'
+            });
+
+            console.log('✅ Featured movies loaded successfully');
+
+        } catch (error) {
+            console.error('❌ Error loading featured movies:', error);
+            this.featuredCarousel.innerHTML = `
+                <div class="carousel-item active">
+                    <div class="featured-content">
+                        <div class="alert alert-danger">
+                            Failed to load featured movies
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    }
 }
 
 // Initialize the app with debugging
@@ -349,86 +462,3 @@ document.addEventListener('DOMContentLoaded', () => {
 document.onreadystatechange = () => {
     console.log('📄 Document readyState:', document.readyState);
 };
-
-// Add to assets/js/main.js
-
-document.addEventListener('DOMContentLoaded', () => {
-
-    // Image loading animation
-    const images = document.querySelectorAll('img');
-    images.forEach(img => {
-        img.classList.add('loading');
-        img.onload = () => {
-            img.classList.remove('loading');
-            img.classList.add('loaded');
-        };
-    });
-
-    // Handle hero image loading
-    const heroImage = document.querySelector('.hero-image');
-    if (heroImage) {
-        heroImage.onload = () => {
-            heroImage.classList.remove('loading');
-            heroImage.classList.add('loaded');
-        };
-
-        // If image is already loaded when script runs
-        if (heroImage.complete) {
-            heroImage.classList.remove('loading');
-            heroImage.classList.add('loaded');
-        }
-    }
-});
-
-function toggleSidebar() {
-    const sidebar = document.getElementById("mySidebar");
-    const mainContent = document.getElementById("main-content");
-    const overlay = document.querySelector(".sidebar-overlay");
-    
-    if (sidebar.classList.contains("active")) {
-        sidebar.classList.remove("active");
-        mainContent.classList.remove("shifted");
-        overlay.style.display = "none";
-    } else {
-        sidebar.classList.add("active");
-        mainContent.classList.add("shifted");
-        overlay.style.display = "block";
-    }
-}
-
-// Close sidebar on window resize if it's open
-window.addEventListener('resize', () => {
-    if (window.innerWidth > 768) {
-        const sidebar = document.getElementById("mySidebar");
-        const mainContent = document.getElementById("main-content");
-        const overlay = document.querySelector(".sidebar-overlay");
-        
-        sidebar.classList.remove("active");
-        mainContent.classList.remove("shifted");
-        overlay.style.display = "none";
-    }
-});
-
-// Close sidebar when clicking outside
-document.addEventListener('click', (e) => {
-    const sidebar = document.getElementById("mySidebar");
-    const sidebarToggle = document.querySelector(".sidebar-toggle");
-    
-    if (!sidebar.contains(e.target) && !sidebarToggle.contains(e.target) && sidebar.classList.contains("active")) {
-        toggleSidebar();
-    }
-});
-
-// Add search form handler
-document.addEventListener('DOMContentLoaded', function() {
-    const searchForm = document.getElementById('search-form');
-    if (searchForm) {
-        searchForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const query = document.getElementById('search-input').value.trim();
-            if (query) {
-                window.location.href = `pages/search-results.html?query=${encodeURIComponent(query)}`;
-            }
-        });
-    }
-});

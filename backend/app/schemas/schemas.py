@@ -142,13 +142,13 @@ class WatchlistResponse(WatchlistBase):
 # Rating schemas (needed for UserResponse)
 class RatingCreate(BaseModel):
     movie_id: int
-    rating: int
+    rating: float
 
     class Config:
         json_schema_extra = {
             "example": {
                 "movie_id": 550,
-                "rating": 8
+                "rating": 4.5
             }
         }
 
@@ -161,9 +161,13 @@ class RatingBase(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-class RatingResponse(RatingBase):
-    user_id: int
-    
+class RatingResponse(BaseModel):
+    id: int
+    movie_id: int
+    rating: float
+    created_at: datetime
+    updated_at: datetime
+
     class Config:
         from_attributes = True
 

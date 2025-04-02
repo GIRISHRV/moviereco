@@ -196,15 +196,17 @@ html {
 
 /* Movie card styling */
 .movie-card {
-    background-color: var(--netflix-dark);
+    background-color: var(--bs-dark);
     border: none;
-    transition: transform 0.2s ease-in-out;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden; /* Contain hover effects */
     height: 100%;
 }
 
 .movie-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    z-index: 1; /* Ensure shadow shows above other cards */
 }
 
 .movie-card .card-img-wrapper {
@@ -214,19 +216,22 @@ html {
 }
 
 .movie-card .card-img-top {
-    height: 400px;
+    aspect-ratio: 2/3;
     object-fit: cover;
+    width: 100%;
 }
 
 .movie-card .card-body {
-    padding: 1.25rem;
+    padding: 1rem;
     background-color: #1a1a1a;
 }
 
 .movie-card .card-title {
     font-size: 1.1rem;
     margin-bottom: 0.75rem;
-    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .movie-card .card-text {
@@ -234,11 +239,11 @@ html {
 }
 
 .movie-card .text-muted {
-    color: #808080 !important;
+    color: #adb5bd !important;
 }
 
 .movie-card .btn {
-    font-size: 0.8rem;
+    font-size: 0.9rem;
 }
 
 .movie-card .card-body {
@@ -343,42 +348,32 @@ html {
     color: var(--netflix-text);
 }
 
-/* Rating stars */
 .rating-stars {
     display: inline-flex;
-    margin-top: 10px;
+    gap: 0.25rem;
 }
 
-.rating-stars .star {
-    font-size: 20px;
-    cursor: pointer;
-    color: #e4e5e9;
-    padding: 3px;
-    transition: color 0.2s ease;
-}
-
-.rating-stars .star.active {
-    color: #ffc107;
-}
-
-.rating-stars .star:hover {
-    color: #ffdb70;
-}
-
-/* Add to your style.css file */
 .rating-star {
     cursor: pointer;
-    color: #ddd;
-    transition: color 0.2s;
-    margin: 0 2px;
+    color: #e4e5e9;
+    font-size: 1.25rem;
+    transition: all 0.2s ease;
 }
 
-.rating-star:hover,
-.rating-star.text-warning,
-.rating-star.selected {
+.rating-star:hover {
+    transform: scale(1.2);
+}
+
+.rating-star.text-warning {
     color: #ffc107;
 }
 
+.rating-container {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 1rem;
+    border-radius: 8px;
+    margin: 1rem 0;
+}
 /* Preferences checkboxes */
 .preferences-container {
     display: flex;
@@ -717,15 +712,17 @@ html {
 
 /* Movie Grid Styles */
 .movie-card {
-    background-color: var(--netflix-dark);
+    background-color: var(--bs-dark);
     border: none;
-    transition: transform 0.2s ease-in-out;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden; /* Contain hover effects */
     height: 100%;
 }
 
 .movie-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    z-index: 1; /* Ensure shadow shows above other cards */
 }
 
 .movie-card .card-body {
@@ -1460,12 +1457,19 @@ body.home .top-navbar .container-fluid {
 }
 
 .remove-btn {
-    opacity: 0;
-    transition: opacity 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    margin-top: 0.5rem;
 }
 
-.card:hover .remove-btn {
-    opacity: 1;
+.remove-btn:hover {
+    background-color: #dc3545;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 
 /* Responsive adjustments */
@@ -1496,16 +1500,10 @@ body.home .top-navbar .container-fluid {
     position: absolute;
     top: 5px;
     right: 5px;
-    opacity: 0;
-    transition: opacity 0.2s;
     background: rgba(0,0,0,0.7);
     border: none;
     padding: 5px 8px;
     font-size: 0.8rem;
-}
-
-#watch-history .card:hover .remove-btn {
-    opacity: 1;
 }
 
 /* Profile Page Styles */
@@ -1595,3 +1593,148 @@ body.home .top-navbar .container-fluid {
     margin-right: 1rem;
 }
 
+.rating-display {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.rating-stars {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.rating-date {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-top: 0.5rem;
+}
+
+.ratings-container {
+    margin-bottom: 1rem;
+}
+
+.user-rating,
+.tmdb-rating {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.rating-stars {
+    display: flex;
+    gap: 0.25rem;
+    margin: 0.25rem 0;
+}
+
+.user-rating .text-muted {
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+.tmdb-rating {
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.user-rating .rating-stars .text-warning {
+    color: #ffc107 !important;
+}
+
+.tmdb-rating .rating-stars .text-info {
+    color: #0dcaf0 !important;
+}
+
+.text-muted {
+    font-size: 0.8rem;
+    opacity: 0.7;
+}
+
+/* Featured Carousel Styles */
+.featured-carousel {
+    margin-bottom: 3rem;
+    margin-top: -60px; /* Offset navbar height */
+}
+
+.featured-carousel .carousel-item {
+    height: 80vh;
+    min-height: 500px;
+}
+
+.carousel-item .featured-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+}
+
+.featured-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        to right,
+        rgba(0,0,0,0.9) 0%,
+        rgba(0,0,0,0.7) 40%,
+        rgba(0,0,0,0.4) 100%
+    );
+}
+
+.featured-content {
+    position: relative;
+    height: 100%;
+    color: white;
+    padding: 2rem;
+    display: flex;
+    align-items: center;
+}
+
+.featured-info {
+    max-width: 600px;
+    margin-left: 5%;
+}
+
+.featured-title {
+    font-size: 3.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+.featured-overview {
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+.featured-meta {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.featured-rating {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.featured-rating i {
+    color: #ffc107;
+}
+
+/* Section title styling */
+.section-title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin: 2rem 0;
+    padding-left: 1rem;
+    border-left: 4px solid var(--netflix-red);
+}

@@ -342,48 +342,28 @@ async def rate_movie(
 ):
     """Rate a movie"""
     try:
-        if rating_data.rating < 1 or rating_data.rating > 10:
-            raise HTTPException(status_code=400, detail="Rating must be between 1 and 10")
+        if rating_data.rating < 0 or rating_data.rating > 5:
+            raise HTTPException(status_code=400, detail="Rating must be between 0 and 5")
             
-        movie_id = rating_data.movie_id
-        
-        # Check if user has already rated this movie
         existing_rating = db.query(Rating).filter(
             Rating.user_id == current_user.id,
-            Rating.movie_id == movie_id
+            Rating.movie_id == rating_data.movie_id
         ).first()
         
         if existing_rating:
-            # Update existing rating
             existing_rating.rating = rating_data.rating
-            existing_rating.updated_at = datetime.now()
-            db.commit()
-            return {"success": True, "message": "Rating updated"}
+            existing_rating.updated_at = datetime.utcnow()
+        else:
+            new_rating = Rating(
+                user_id=current_user.id,
+                movie_id=rating_data.movie_id,
+                rating=rating_data.rating
+            )
+            db.add(new_rating)
             
-        # Get movie details from TMDB
-        try:
-            movie_details = tmdb_service.get_movie_details(movie_id)
-        except Exception as e:
-            logger.error(f"Failed to fetch movie details: {e}")
-            raise HTTPException(status_code=404, detail=f"Movie not found: {str(e)}")
-            
-        # Create new rating
-        new_rating = Rating(
-            user_id=current_user.id,
-            movie_id=movie_id,
-            rating=rating_data.rating,
-            title=movie_details.get("title", "Unknown"),
-            poster_path=movie_details.get("poster_path"),
-            created_at=datetime.now()
-        )
-        
-        db.add(new_rating)
         db.commit()
+        return {"success": True, "message": "Rating updated"}
         
-        return {"success": True, "message": "Rating added"}
-        
-    except HTTPException:
-        raise
     except Exception as e:
         db.rollback()
         logger.error(f"Error rating movie: {str(e)}")
@@ -402,11 +382,43 @@ async def get_movie_rating(
             Rating.movie_id == movie_id
         ).first()
         
-        if not rating:
-            return {"rating": None}
-            
-        return {"rating": rating.rating}
-        
+        return {"rating": rating.rating if rating else None}
     except Exception as e:
         logger.error(f"Error getting movie rating: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/ratings")
+async def get_user_ratings(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get all ratings by the user"""
+    try:
+        logger.info(f"Getting ratings for user {current_user.id}")
+        ratings = db.query(Rating).filter(
+            Rating.user_id == current_user.id
+        ).order_by(Rating.updated_at.desc()).all()
+        
+        logger.info(f"Found {len(ratings)} ratings")
+        rated_movies = []
+        
+        for rating in ratings:
+            try:
+                movie_details = tmdb_service.get_movie_details(rating.movie_id)
+                rated_movies.append({
+                    "id": rating.movie_id,
+                    "title": movie_details.get("title"),
+                    "poster_path": movie_details.get("poster_path"),
+                    "rating": float(rating.rating),  # Ensure rating is a float
+                    "rated_at": rating.updated_at.isoformat()  # Format date properly
+                })
+            except Exception as e:
+                logger.error(f"Error getting details for movie {rating.movie_id}: {str(e)}")
+                continue
+            
+        logger.info(f"Returning {len(rated_movies)} rated movies")
+        return {"ratings": rated_movies}
+        
+    except Exception as e:
+        logger.error(f"Error getting user ratings: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

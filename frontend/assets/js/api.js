@@ -93,6 +93,13 @@ class ApiService {
         return `https://image.tmdb.org/t/p/w500${path}`;
     }
 
+    getBackdropUrl(path) {
+        if (!path) {
+            return 'assets/images/placeholder-backdrop.jpg'; // Fallback image if no backdrop is available
+        }
+        return `https://image.tmdb.org/t/p/original${path}`; // TMDB's base URL for backdrops
+    }
+
     // Core movie methods
     async getPopularMovies(page = 1) {
         try {
@@ -590,6 +597,53 @@ class ApiService {
                 console.error('Method not allowed. Check API endpoint implementation.');
             }
             throw new Error('Failed to load user profile');
+        }
+    }
+
+    async rateMovie(movieId, rating) {
+        try {
+            const response = await this.apiCall('/users/ratings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({ movie_id: movieId, rating })
+            });
+            return response;
+        } catch (error) {
+            console.error('Error rating movie:', error);
+            throw error;
+        }
+    }
+
+    async getMovieRating(movieId) {
+        try {
+            const response = await this.apiCall(`/users/ratings/${movieId}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            return response.rating;
+        } catch (error) {
+            console.error('Error getting movie rating:', error);
+            return null;
+        }
+    }
+
+    async getUserRatings() {
+        try {
+            console.log('📥 Fetching user ratings...');
+            const response = await this.apiCall('/users/ratings', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            console.log('📦 Ratings response:', response);
+            return response;
+        } catch (error) {
+            console.error('❌ Error getting user ratings:', error);
+            throw error;
         }
     }
 }    

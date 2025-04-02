@@ -72,11 +72,9 @@ class Rating(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    movie_id = Column(Integer, index=True)
-    rating = Column(Integer)
-    title = Column(String)
-    poster_path = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.now)
-    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+    movie_id = Column(Integer)
+    rating = Column(Float)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    user = relationship("User", back_populates="ratings_entries")
+    user = relationship("User", back_populates="ratings")
